@@ -6,6 +6,7 @@ require/guarantee UTF8 encoding. Rust has great support for dealing with UTF8,
 but C strings require a NUL terminator which Rust's `str` and `String` don't have.
 
 ```
+# #![feature(use_extern_macros)]
 # #[macro_use] extern crate terminated;
 # fn main() {
 let s = ntstr!("Hello, World!");
@@ -25,7 +26,12 @@ but it does not use any specific encoding. It's therefore insufficient
 if your input needs to be both NUL-terminated and UTF8 encoded.
 */
 
+#![cfg_attr(terminated_unstable, feature(use_extern_macros))]
 #![no_std]
+
+#[cfg(terminated_unstable)]
+#[doc(hidden)]
+pub extern crate terminated_macros;
 
 use core::fmt;
 use core::mem;
@@ -58,6 +64,7 @@ A valid UTF8 string terminated by NUL, the null character.
 meaning all of `str`'s methods are available:
 
 ```
+# #![feature(use_extern_macros)]
 # #[macro_use] extern crate terminated;
 # fn main() {
 let s = ntstr!("Hello, World!");
@@ -98,6 +105,10 @@ impl NulTerminatedStr {
         })
     }
 
+    pub unsafe fn from_str_with_nul_unchecked(s: &str) -> &NulTerminatedStr {
+        &*(s as *const str as *const NulTerminatedStr)
+    }
+
     /// Returns the content of self including the NUL terminator.
     pub fn as_str_with_nul(&self) -> &str {
         &self.0
@@ -135,6 +146,7 @@ Creates a static `NulTerminatedStr` from a string literal.
 
 # Example
 ```
+# #![feature(use_extern_macros)]
 # #[macro_use] extern crate terminated;
 # fn main() {
 let s = ntstr!("Hello, World!");
@@ -143,11 +155,32 @@ assert_eq!(s.as_str_with_nul(), "Hello, World!\0");
 ```
 */
 #[macro_export]
-macro_rules! ntstr {
+macro_rules! ntstr { ($e:expr) => (ntstr_impl!($e)) }
+
+#[cfg(not(terminated_unstable))]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! ntstr_impl {
     ($e:expr) => (
         match $crate::NulTerminatedStr::from_str_with_nul(concat!($e, "\0")) {
             Ok(s) => s,
             Err(e) => panic!("{}", e),
+        }
+    )
+}
+
+#[cfg(terminated_unstable)]
+#[doc(hidden)]
+#[macro_export]
+macro_rules! ntstr_impl {
+    ($e:expr) => (
+        {
+            #[allow(unsafe_code)]
+            unsafe {
+                $crate::NulTerminatedStr::from_str_with_nul_unchecked(
+                    $crate::terminated_macros::ntstr!($e),
+                )
+            }
         }
     )
 }

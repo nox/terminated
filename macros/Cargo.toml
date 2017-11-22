@@ -1,0 +1,16 @@
+[package]
+name = "terminated_macros"
+version = "0.1.0"
+authors = ["Anthony Ramine <n.oxyde@gmail.com>"]
+
+[lib]
+proc-macro = true
+
+[features]
+enable = ["syn"]
+
+[dependencies.syn]
+version = "0.11"
+optional = true
+default-features = false
+features = ["parsing"]

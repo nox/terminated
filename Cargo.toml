@@ -13,4 +13,12 @@ license = "MIT"
 
 exclude = [
   ".gitignore",
- ]
+]
+
+[dependencies]
+terminated_macros = {path = "macros", optional = true, features = ["enable"]}
+
+[workspace]
+members = [
+  "macros",
+]
